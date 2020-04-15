@@ -1,0 +1,204 @@
+---
+title: "Project 9.2 R Markdown and Leaflet"
+author: "ElenaKush"
+date: '2020-04-15'
+output: html_document
+---
+
+## Summary
+
+In this project we will create a web page using R Markdown that features a map created with Leaflet.  
+This web page is hosted on GitHub Pages (HERE URL!!!).  
+
+For the project purposes we will analise coronavirus COVID-19 confirmed infection and death cases worldwide.  
+We used data posted by the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University here: https://github.com/CSSEGISandData/COVID-19.  
+The data is incremental and dated from the 2020-01-22 up to the `lastdate`. 
+
+To create a map we used the following libraries: dplyr, leaflet, maps, geojsonio and stringr.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r environment, include = FALSE}
+if("pacman" %in% rownames(installed.packages()) == FALSE){ install.packages("pacman") }
+library(pacman)
+p_load(dplyr,
+       leaflet,
+       maps,
+       geojsonio, 
+       stringr)
+```
+
+```{r datasets, include = FALSE}
+local_path <- "C:/Users/kushnarevaei/Documents/GitHub/JH_R_Course/Course9/Week2/Project9.2/"
+URL_cases_global <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+
+download.file(URL_cases_global,
+              destfile = paste0(local_path,"data/cases_global.csv"))
+
+cases_global <- read.csv(paste0(local_path,"data/cases_global.csv"))
+
+URL_deaths_global <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
+
+download.file(URL_deaths_global,
+              destfile = paste0(local_path,"data/deaths_global.csv"))
+
+deaths_global <- read.csv(paste0(local_path,"data/deaths_global.csv"))
+
+URLfilegeo <- "https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json"
+
+download.file(URLfilegeo,
+              destfile = paste0(local_path,"data/countries.geo.json"))
+
+WorldCountry <- geojson_read(paste0(local_path,"data/countries.geo.json"), what = "sp")
+```
+
+```{r EDA, include = FALSE}
+## World map with countries boundaries:
+##View(WorldCountry)
+##a <- WorldCountry[!(WorldCountry$name %in% cases_global$Country.Region), ] ##there are old country names whuch do not correspond to the cases_global dataset 
+##a[[2]]
+correctnames <- c("Antarctica", 
+                  "French Southern and Antarctic Lands", 
+                  "Bahamas", 
+                  "Bermuda",
+                  "Cote d'Ivoire",
+                  "Congo (Kinshasa)",
+                  "Congo (Brazzaville)",
+                  "Northern Cyprus",
+                  "Czechia",
+                  "Falkland Islands",
+                  "Guinea-Bissau",
+                  "Greenland",
+                  "France",
+                  "Korea, South",
+                  "Lesotho",
+                  "North Macedonia",
+                  "Burma",
+                  "France",
+                  "Puerto Rico",
+                  "North Korea",
+                  "Solomon Islands",
+                  "Somalia",
+                  "Serbia",
+                  "Eswatini",
+                  "Tajikistan",
+                  "Turkmenistan",
+                  "Timor-Leste",
+                  "Taiwan*",
+                  "Tanzania",
+                  "US",
+                  "Vanuatu",
+                  "West Bank and Gaza")
+
+WorldCountry[!(WorldCountry$name %in% cases_global$Country.Region), 2] <- correctnames  
+##dataMap <- WorldCountry[WorldCountry$name %in% cases_global$Country.Region, ]
+
+##head(cases_global)
+##View(cases_global)
+##str(cases_global)
+##dim(cases_global)
+##names(cases_global)
+lastdate <- names(cases_global)[ncol(cases_global)]
+lastdate <- as.Date(str_remove(lastdate, "X"), "%m.%e.%y")
+
+cases_global$total_cases <- cases_global[, ncol(cases_global)]
+cases_global <- cases_global %>%
+    group_by(Country.Region = cases_global$Country.Region) %>%
+    summarise(total_cases = sum(total_cases))
+
+
+
+dataMap <- sp::merge(WorldCountry, cases_global, by.x = "name", by.y = "Country.Region", all = T)
+##names(dataMap)
+dataMap@data[is.na(dataMap@data$total_cases), 3] <- 0
+##head(dataMap@data[dataMap@data$total_cases == 0, ])
+
+deaths_global$total_deaths <- deaths_global[, ncol(deaths_global)]
+deaths_global <- deaths_global %>%
+    group_by(Country.Region = deaths_global$Country.Region) %>%
+    summarise(total_deaths = sum(total_deaths))
+dataMap <- sp::merge(dataMap, deaths_global, by.x = "name", by.y = "Country.Region", all = T)
+##names(dataMap)
+dataMap@data[is.na(dataMap@data$total_deaths), 4] <- 0
+
+##
+```
+
+
+```{r viz, include = FALSE}
+
+##head(dataMap)
+pal_cases <- colorNumeric(
+    palette = 'OrRd',##"Blues",
+    domain = as.numeric(dataMap$total_cases))
+
+pal_deaths <- colorNumeric(
+    palette = "Blues",
+    domain = as.numeric(dataMap$total_deaths))
+
+labels <- sprintf(
+    "<strong>Country: %s</strong><br/>Cases: %g<br/>Deaths: %g",
+    dataMap$name, dataMap$total_cases, dataMap$total_deaths) %>% 
+    lapply(htmltools::HTML) 
+
+leaflet(dataMap) %>% 
+    addTiles(group = "COVID19 Confirmed Cases") %>% 
+    addTiles(group="COVID19 Deaths") %>%
+    addPolygons(
+        fillColor = ~ pal_cases(as.numeric(dataMap$total_cases)),
+        ##smoothFactor = 0.2,
+        weight = 1,
+        opacity = 1,
+        color = 'gray',
+        dashArray = '3',
+        fillOpacity = 0.7,
+        label = labels,
+        highlight = highlightOptions(
+            weight = 2,
+            color = "#666",
+            dashArray = "",
+            fillOpacity = 0.7,
+            bringToFront = TRUE),
+        labelOptions = labelOptions(
+            style = list("font-weight" = "normal", padding = "3px 8px"),
+            textsize = "15px",
+            direction = "auto"),
+        group = "COVID19 Confirmed Cases") %>%
+    addPolygons(
+        fillColor = ~ pal_deaths(as.numeric(dataMap$total_deaths)),
+        ##smoothFactor = 0.2,
+        weight = 1,
+        opacity = 1,
+          color = 'gray',
+        dashArray = '3',
+        fillOpacity = 0.7,
+        label = labels,
+        highlight = highlightOptions(
+            weight = 2,
+            color = "#666",
+            dashArray = "",
+            fillOpacity = 0.7,
+            bringToFront = TRUE),
+        labelOptions = labelOptions(
+            style = list("font-weight" = "normal", padding = "3px 8px"),
+            textsize = "15px",
+            direction = "auto"),
+        group = "COVID19 Deaths") %>%
+    addLayersControl(
+        baseGroups = c("COVID19 Confirmed Cases", "COVID19 Deaths"),
+        options = layersControlOptions(collapsed = FALSE)
+  )
+    
+    
+##    addLegend(
+  ##    pal = pal, 
+    ##  values = ~ as.numeric(dataMap$total_cases), 
+      ##opacity = 0.7, 
+      ##title = NULL,
+      ##position = "topright")
+
+```
+
+
