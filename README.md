@@ -2,7 +2,7 @@
 
 In this project we will create a web page using R Markdown that features a map created with Leaflet.
 
-This web page is hosted on GitHub Pages (HERE URL!!!).
+This web page is hosted on GitHub Pages (https://elenakush.github.io/developing_data_products_leaflet/map_COVID19.html).
 
 For the project purposes we will analise coronavirus COVID-19 confirmed infection and death cases worldwide.
 
