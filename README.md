@@ -4,7 +4,7 @@ In this project we will create a web page using R Markdown that features a map c
 
 This web page is hosted on GitHub Pages (https://elenakush.github.io/developing_data_products_leaflet/map_COVID19.html).
 
-For the project purposes we will analise coronavirus COVID-19 confirmed infection and death cases worldwide.
+For the project purposes we will analyse coronavirus COVID-19 confirmed infection and death cases worldwide.
 
 We used data posted by the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University here: https://github.com/CSSEGISandData/COVID-19.
 
