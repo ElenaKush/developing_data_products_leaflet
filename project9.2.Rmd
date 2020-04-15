@@ -31,7 +31,7 @@ p_load(dplyr,
 ```
 
 ```{r datasets, include = FALSE}
-local_path <- "C:/Users/kushnarevaei/Documents/GitHub/JH_R_Course/Course9/Week2/Project9.2/"
+local_path <- "C:/Users/kushnarevaei/Documents/GitHub/JH_R_Course/Course9/Week2/Project9.2/developing_data_products_leaflet/"
 URL_cases_global <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 
 download.file(URL_cases_global,
@@ -144,8 +144,8 @@ labels <- sprintf(
     lapply(htmltools::HTML) 
 
 leaflet(dataMap) %>% 
-    addTiles(group = "COVID19 Confirmed Cases") %>% 
-    addTiles(group="COVID19 Deaths") %>%
+    addTiles(group = "COVID19 Confirmed Cases", options=providerTileOptions(noWrap = TRUE)) %>% 
+    addTiles(group="COVID19 Deaths", options=providerTileOptions(noWrap = TRUE)) %>%
     addPolygons(
         fillColor = ~ pal_cases(as.numeric(dataMap$total_cases)),
         ##smoothFactor = 0.2,
